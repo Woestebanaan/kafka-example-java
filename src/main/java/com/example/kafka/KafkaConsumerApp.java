@@ -1,6 +1,5 @@
 package com.example.kafka;
 
-import com.azure.core.credential.TokenRequestContext;
 import com.azure.identity.DefaultAzureCredentialBuilder;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -33,7 +32,7 @@ public class KafkaConsumerApp {
         var saslMechanism = getConfig(config, "KAFKA_SASL_MECHANISM", "kafka.sasl.mechanism", "OAUTHBEARER");
         var sslEndpointAlgorithm = getConfig(config, "KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM", "kafka.ssl.endpoint.identification.algorithm", "https");
         var sslCaLocation = getConfig(config, "KAFKA_SSL_CA_LOCATION", "kafka.ssl.ca.location", "");
-        var enableInsecureSsl = getConfig(config, "KAFKA_ENABLE_INSECURE_SSL", "kafka.enable.insecure.ssl", "false");
+        var enableInsecureSsl = Boolean.parseBoolean(getConfig(config, "KAFKA_ENABLE_INSECURE_SSL", "kafka.enable.insecure.ssl", "false"));
 
         // Get client ID from AZURE_CLIENT_ID (set by Azure Workload Identity or manually)
         var clientId = System.getenv("AZURE_CLIENT_ID");
@@ -64,6 +63,9 @@ public class KafkaConsumerApp {
         props.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, sslEndpointAlgorithm);
         if (!sslCaLocation.isEmpty()) {
             props.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, sslCaLocation);
+        }
+        if (enableInsecureSsl) {
+            props.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
         }
 
         // Configure JAAS with Azure OAuth Bearer token provider
