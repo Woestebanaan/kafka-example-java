@@ -1,0 +1,24 @@
+## Java / Maven
+target/
+*.class
+*.jar
+*.war
+
+## IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+.project
+.classpath
+.settings/
+
+## Secrets and certificates
+*.pem
+*.pfx
+*.key
+*.jks
+
+## OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,7 @@
+target/
+.idea/
+*.iml
+*.yaml
+*.pem
+*.txt
+application.properties
