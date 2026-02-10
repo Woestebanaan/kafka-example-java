@@ -69,6 +69,7 @@ public class KafkaConsumerApp {
         }
         if (enableInsecureSsl) {
             props.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
+            props.put(SslConfigs.SSL_ENGINE_FACTORY_CLASS_CONFIG, InsecureSslEngineFactory.class.getName());
         }
 
         // Configure JAAS with Azure OAuth Bearer token provider
