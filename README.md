@@ -1,6 +1,11 @@
-# Kafka Consumer Example (Java)
+# Kafka Consumer & Producer Example (Java)
 
-A Java 21 Kafka consumer that uses Azure Entra ID (formerly Azure AD) with federated credentials for authentication.
+Java 21 Kafka consumer and producer apps that use Azure Entra ID (formerly Azure AD) with federated credentials for authentication.
+
+## Project Structure
+
+- `consumer/` - Kafka consumer that reads messages from a topic
+- `producer/` - Kafka producer that publishes the current UTC time every second
 
 ## Prerequisites
 
@@ -101,14 +106,31 @@ az account show
 # Set the Azure Client ID
 export AZURE_CLIENT_ID=<your-app-registration-client-id>
 
-# Build and run
+# Build and run the consumer
+cd consumer
 mvn clean package -DskipTests
-java -jar target/kafka-example-java-1.0-SNAPSHOT.jar
+java -jar target/kafka-example-java-consumer-1.0-SNAPSHOT.jar
+
+# Build and run the producer
+cd producer
+mvn clean package -DskipTests
+java -jar target/kafka-example-java-producer-1.0-SNAPSHOT.jar
 ```
 
 `DefaultAzureCredential` will automatically use your Azure CLI credentials.
 
-### Kubernetes with Workload Identity
+### Kubernetes Deployment
+
+There are two Kubernetes deployment examples for each app, depending on your authentication method:
+
+| Auth Method | Consumer | Producer |
+|---|---|---|
+| Workload Identity | `consumer/k8s-deployment-workload-identity.yaml` | `producer/k8s-deployment-workload-identity.yaml` |
+| Client Secret | `consumer/k8s-deployment-secret.yaml` | `producer/k8s-deployment-secret.yaml` |
+
+#### Option 1: Workload Identity
+
+Uses Azure Workload Identity to authenticate without secrets. The AKS workload identity webhook automatically injects the federated token.
 
 1. **Enable Workload Identity on your AKS cluster:**
 
@@ -132,39 +154,34 @@ metadata:
     azure.workload.identity/client-id: "<your-app-registration-client-id>"
 ```
 
-3. **Deploy your application with the service account:**
+3. **Deploy your application:**
 
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: kafka-consumer
-  namespace: your-namespace
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: kafka-consumer
-  template:
-    metadata:
-      labels:
-        app: kafka-consumer
-        azure.workload.identity/use: "true"
-    spec:
-      serviceAccountName: kafka-consumer-sa
-      containers:
-        - name: kafka-consumer
-          image: your-registry/kafka-consumer:latest
-          env:
-            - name: AZURE_CLIENT_ID
-              value: "<your-app-registration-client-id>"
-            - name: AZURE_TENANT_ID
-              value: "<your-tenant-id>"
+```bash
+kubectl apply -f consumer/k8s-deployment-workload-identity.yaml
+kubectl apply -f producer/k8s-deployment-workload-identity.yaml
 ```
 
 The workload identity webhook automatically injects:
 - `AZURE_FEDERATED_TOKEN_FILE` - path to the projected service account token
 - Mounts the token at the specified path
+
+#### Option 2: Client Secret
+
+Uses a Kubernetes Secret containing the Azure client secret for authentication. This is useful for non-AKS environments or CI/CD pipelines.
+
+1. **Create the Kubernetes Secret:**
+
+```bash
+kubectl create secret generic azure-client-secret \
+  --from-literal=client-secret="<your-azure-client-secret>"
+```
+
+2. **Deploy your application:**
+
+```bash
+kubectl apply -f consumer/k8s-deployment-secret.yaml
+kubectl apply -f producer/k8s-deployment-secret.yaml
+```
 
 ### Azure Container Apps / App Service
 
@@ -214,14 +231,32 @@ For managed Azure services, use Managed Identity:
 |----------|-------------|----------|
 | `AZURE_CLIENT_ID` | App Registration Client ID | Yes (in Kubernetes) |
 | `AZURE_TENANT_ID` | Azure Tenant ID | Yes (in Kubernetes) |
+| `AZURE_CLIENT_SECRET` | Client secret for service principal auth | No (see below) |
 | `AZURE_FEDERATED_TOKEN_FILE` | Path to OIDC token (auto-injected by AKS) | Auto |
 | `KAFKA_BOOTSTRAP_SERVERS` | Kafka broker address | No (uses application.properties) |
 | `KAFKA_GROUP_ID` | Consumer group ID | No (uses application.properties) |
-| `KAFKA_TOPIC` | Kafka topic to consume | No (uses application.properties) |
-| `KAFKA_AUTO_OFFSET_RESET` | Offset reset policy | No (uses application.properties) |
-| `KAFKA_ENABLE_AUTO_COMMIT` | Auto commit offsets | No (uses application.properties) |
+| `KAFKA_TOPIC` | Kafka topic to consume/produce | No (uses application.properties) |
+| `KAFKA_AUTO_OFFSET_RESET` | Offset reset policy (consumer only) | No (uses application.properties) |
+| `KAFKA_ENABLE_AUTO_COMMIT` | Auto commit offsets (consumer only) | No (uses application.properties) |
 | `KAFKA_SECURITY_PROTOCOL` | Security protocol | No (uses application.properties) |
 | `KAFKA_SASL_MECHANISM` | SASL mechanism | No (uses application.properties) |
 | `KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM` | SSL endpoint identification | No (uses application.properties) |
 | `KAFKA_SSL_CA_LOCATION` | Path to CA certificate | No (uses application.properties) |
 | `KAFKA_ENABLE_INSECURE_SSL` | Disable SSL verification | No (uses application.properties) |
+
+### Client Secret Authentication
+
+When `AZURE_TENANT_ID` and `AZURE_CLIENT_SECRET` are set alongside `AZURE_CLIENT_ID`, the application uses `ClientSecretCredential` instead of `DefaultAzureCredential`. This is useful for:
+
+- CI/CD pipelines
+- Non-AKS environments without managed identity
+- Local testing with a service principal
+
+```bash
+export AZURE_CLIENT_ID="<your-client-id>"
+export AZURE_TENANT_ID="<your-tenant-id>"
+export AZURE_CLIENT_SECRET="<your-client-secret>"
+java -jar target/kafka-example-java-consumer-1.0-SNAPSHOT.jar
+```
+
+Without `AZURE_CLIENT_SECRET` and `AZURE_TENANT_ID`, the app falls back to `DefaultAzureCredential`.

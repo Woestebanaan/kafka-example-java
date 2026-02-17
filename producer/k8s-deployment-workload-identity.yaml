@@ -1,38 +1,32 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: kafka-example-java
+  name: kafka-example-java-producer
   labels:
-    app: kafka-example-java
+    app: kafka-example-java-producer
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: kafka-example-java
+      app: kafka-example-java-producer
   template:
     metadata:
       labels:
-        app: kafka-example-java
+        app: kafka-example-java-producer
         azure.workload.identity/use: "true"
     spec:
       serviceAccountName: <your-service-account>
       containers:
-        - name: kafka-consumer
-          image: ghcr.io/woestebanaan/kafka-example-java:latest
+        - name: kafka-producer
+          image: ghcr.io/woestebanaan/kafka-example-java-producer:latest
           imagePullPolicy: Always
           env:
             - name: AZURE_CLIENT_ID
               value: "<your-azure-ad-client-id>"
             - name: KAFKA_BOOTSTRAP_SERVERS
               value: "kafka-broker.example.com:9094"
-            - name: KAFKA_GROUP_ID
-              value: "my-consumer-group"
             - name: KAFKA_TOPIC
               value: "my-topic"
-            - name: KAFKA_AUTO_OFFSET_RESET
-              value: "earliest"
-            - name: KAFKA_ENABLE_AUTO_COMMIT
-              value: "true"
             - name: KAFKA_SECURITY_PROTOCOL
               value: "SASL_SSL"
             - name: KAFKA_SASL_MECHANISM

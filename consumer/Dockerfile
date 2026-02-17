@@ -10,7 +10,7 @@ RUN mvn package -DskipTests
 FROM eclipse-temurin:21-jre AS runtime
 WORKDIR /app
 
-COPY --from=build /src/target/kafka-example-java-1.0-SNAPSHOT.jar app.jar
+COPY --from=build /src/target/kafka-example-java-consumer-1.0-SNAPSHOT.jar app.jar
 
 USER 1000
 ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -5,12 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.example</groupId>
-    <artifactId>kafka-example-java</artifactId>
+    <artifactId>kafka-example-java-consumer</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>kafka-example-java</name>
-    <description>Kafka consumer with Azure Entra ID federated credentials authentication</description>
+    <name>kafka-example-java-consumer</name>
+    <description>Kafka consumer with Azure Entra ID authentication</description>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
